@@ -1,0 +1,14 @@
+CPU frekansi = 400 MHz = 400 x 10^6 cycle/s
+
+1 cycle suresi:
+T_cycle = 1 / (400 x 10^6) = 2.5 ns
+
+Deadline:
+D = 3 ms = 3 x 10^-3 s
+
+3 ms icinde kullanilabilecek maksimum cycle:
+C_max = D x f_CPU
+C_max = 3 x 10^-3 x 400 x 10^6
+C_max = 1.2 x 10^6 cycle
+
+Yani teorik olarak 3 ms icinde yaklasik 1,200,000 cycle vardir.

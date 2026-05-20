@@ -1,0 +1,7 @@
+[00:00:01.001200] SENSOR   fish_id=12 length=280mm weight=520g
+[00:00:01.001850] CLASSIFY fish_id=12 class=MEDIUM
+[00:00:01.002400] ACTUATE  fish_id=12 bin=B
+[00:00:01.002700] STATUS   fish_id=12 latency_ns=1500000 deadline=OK error=ERR_NONE
+
+[00:00:02.003100] SENSOR   fish_id=13 length=0mm weight=9999g
+[00:00:02.003700] STATUS   fish_id=13 deadline=MISS error=ERR_INVALID_DATA

@@ -1,0 +1,19 @@
+CC=gcc
+CFLAGS=-Wall -pthread
+
+all: main timer_test pthread_test model_check
+
+main: main.c fish_system.c queue.c
+	$(CC) $(CFLAGS) main.c fish_system.c queue.c -o main
+
+timer_test: timer_test.c
+	$(CC) $(CFLAGS) timer_test.c -o timer_test
+
+pthread_test: pthread_test.c
+	$(CC) $(CFLAGS) pthread_test.c -o pthread_test
+
+model_check: model_check.c
+	$(CC) $(CFLAGS) model_check.c -o model_check
+
+clean:
+	rm -f main timer_test pthread_test model_check

@@ -1,0 +1,43 @@
+Proje Adi:
+Gercek Zamanli Balik Boyut ve Agirlik Siniflandirma Sistemi
+
+Ortam:
+Ubuntu
+
+Programlama Dili:
+C
+
+Thread Yapisi:
+POSIX Threads (pthread)
+
+Gercek Zamanlilik Turu:
+Hard real-time
+
+Deadline:
+3 ms
+
+Islemci Varsayimi:
+400 MHz gomulu islemci (ARM Cortex-M4 sinifi varsayimi)
+
+Threadler:
+1. Sensor Thread
+2. Classification Thread
+3. Actuator Thread
+
+Paylasilan Yapi:
+Shared Queue (producer-consumer mantigi)
+
+Loglama:
+Timestamp tabanli
+
+Exceptionlar:
+- Deadline miss
+- Sensor read failure
+- Invalid data
+- Queue overflow
+- Actuator delay
+
+Siniflandirma:
+- Kucuk
+- Orta
+- Buyuk

@@ -1,0 +1,5 @@
+Buttazzo - Hard Real-Time Computing Systems
+Liu - Real-Time Systems
+IEEE POSIX Threads Standard
+Tanenbaum - Modern Operating Systems
+Marwedel - Embedded System Design
