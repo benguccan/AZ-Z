@@ -330,12 +330,13 @@ static void draw_status_card(
     SDL_Color accent
 ) {
     SDL_Rect rect = {x, y, w, h};
-    SDL_Rect value_rect = {x + 12, y + 30, w - 24, h - 34};
+    SDL_Rect label_rect = {x + 12, y + 10, w - 24, 16};
+    SDL_Rect value_rect = {x + 10, y + 30, w - 20, h - 34};
 
     draw_panel(renderer, rect, (SDL_Color) {20, 27, 33, 220}, (SDL_Color) {45, 58, 68, 255});
     SDL_SetRenderDrawColor(renderer, accent.r, accent.g, accent.b, 255);
     SDL_RenderFillRect(renderer, &(SDL_Rect) {x, y, 5, h});
-    draw_text(renderer, x + 16, y + 12, 2, (SDL_Color) {132, 149, 162, 255}, label);
+    draw_text_centered(renderer, label_rect, 2, (SDL_Color) {132, 149, 162, 255}, label);
     draw_text_centered(renderer, value_rect, 3, (SDL_Color) {232, 239, 242, 255}, value);
 }
 
@@ -725,13 +726,13 @@ static void draw_status_panel(SDL_Renderer* renderer, const VisualState* state) 
     draw_status_card(renderer, 688, 34, 130, 74, "INVALID", value_buffer, (SDL_Color) {255, 170, 70, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "IN:%d OUT:%d", input_queue_count, output_queue_count);
-    draw_status_card(renderer, 834, 34, 190, 74, "QUEUE STATUS", value_buffer, (SDL_Color) {118, 136, 153, 255});
+    draw_status_card(renderer, 826, 34, 214, 74, "QUEUE STATUS", value_buffer, (SDL_Color) {118, 136, 153, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "%.2fMS", average_latency_ms);
-    draw_status_card(renderer, 1034, 34, 112, 74, "AVG", value_buffer, (SDL_Color) {80, 180, 255, 255});
+    draw_status_card(renderer, 1050, 34, 96, 74, "AVG", value_buffer, (SDL_Color) {80, 180, 255, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "%.2fMS", state->stats.max_latency_ms);
-    draw_status_card(renderer, 1154, 34, 104, 74, "MAX", value_buffer, (SDL_Color) {255, 176, 67, 255});
+    draw_status_card(renderer, 1158, 34, 100, 74, "MAX", value_buffer, (SDL_Color) {255, 176, 67, 255});
 
     draw_activity_indicator(renderer, 44, 112, "SENSOR THREAD ACTIVE", state->sensor_activity);
     draw_activity_indicator(renderer, 330, 112, "CLASSIFICATION THREAD ACTIVE", state->classification_activity);

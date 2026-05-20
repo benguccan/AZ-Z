@@ -1,17 +1,17 @@
 [Sensor produced] fish_id=1 length=180mm weight=220g class=UNCLASSIFIED error=ERR_NONE latency_ns=-1 deadline=- destination=-
 [Classification consumed/classified] fish_id=1 length=180mm weight=220g class=SMALL error=ERR_NONE latency_ns=-1 deadline=- destination=-
-[Actuator routed] fish_id=1 length=180mm weight=220g class=SMALL error=ERR_NONE latency_ns=84020 deadline=DEADLINE_OK destination=BIN_A
+[Actuator routed] fish_id=1 length=180mm weight=220g class=SMALL error=ERR_NONE latency_ns=105653 deadline=DEADLINE_OK destination=BIN_A
 [Sensor produced] fish_id=2 length=280mm weight=520g class=UNCLASSIFIED error=ERR_NONE latency_ns=-1 deadline=- destination=-
 [Sensor produced] fish_id=3 length=420mm weight=850g class=UNCLASSIFIED error=ERR_NONE latency_ns=-1 deadline=- destination=-
 [Classification consumed/classified] fish_id=2 length=280mm weight=520g class=MEDIUM error=ERR_NONE latency_ns=-1 deadline=- destination=-
-[Actuator routed] fish_id=2 length=280mm weight=520g class=MEDIUM error=ERR_NONE latency_ns=532492 deadline=DEADLINE_OK destination=BIN_B
+[Actuator routed] fish_id=2 length=280mm weight=520g class=MEDIUM error=ERR_NONE latency_ns=549931 deadline=DEADLINE_OK destination=BIN_B
 [Sensor produced] fish_id=4 length=0mm weight=500g class=UNCLASSIFIED error=ERR_INVALID_DATA latency_ns=-1 deadline=- destination=-
 [Sensor produced] fish_id=5 length=340mm weight=680g class=UNCLASSIFIED error=ERR_NONE latency_ns=-1 deadline=- destination=-
 [Classification consumed/classified] fish_id=3 length=420mm weight=850g class=LARGE error=ERR_NONE latency_ns=-1 deadline=- destination=-
-[Actuator routed] fish_id=3 length=420mm weight=850g class=LARGE error=ERR_NONE latency_ns=1027669 deadline=DEADLINE_OK destination=BIN_C
+[Actuator routed] fish_id=3 length=420mm weight=850g class=LARGE error=ERR_NONE latency_ns=1043817 deadline=DEADLINE_OK destination=BIN_C
 [Classification consumed/classified] fish_id=4 length=0mm weight=500g class=INVALID error=ERR_INVALID_DATA latency_ns=-1 deadline=- destination=-
-[Actuator routed] fish_id=4 length=0mm weight=500g class=INVALID error=ERR_INVALID_DATA latency_ns=1506400 deadline=DEADLINE_OK destination=REJECT_BIN
+[Actuator routed] fish_id=4 length=0mm weight=500g class=INVALID error=ERR_INVALID_DATA latency_ns=1551081 deadline=DEADLINE_OK destination=REJECT_BIN
 [Classification consumed/classified] fish_id=5 length=340mm weight=680g class=MEDIUM error=ERR_NONE latency_ns=-1 deadline=- destination=-
-[Actuator routed] fish_id=5 length=340mm weight=680g class=MEDIUM error=ERR_DEADLINE_MISS latency_ns=5981029 deadline=DEADLINE_MISS destination=LATE_REJECT
+[Actuator routed] fish_id=5 length=340mm weight=680g class=MEDIUM error=ERR_DEADLINE_MISS latency_ns=6066200 deadline=DEADLINE_MISS destination=LATE_REJECT
 [Performance Summary]
-total_fish=5 deadline_ok_count=4 deadline_miss_count=1 invalid_data_count=1 average_latency_ms=1.826 max_latency_ms=5.981
+total_fish=5 deadline_ok_count=4 deadline_miss_count=1 invalid_data_count=1 average_latency_ms=1.863 max_latency_ms=6.066
