@@ -1,24 +1,13 @@
 #include <SDL2/SDL.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 
 #include "fish_system.h"
 
-#define DEMO_MODE 1
-#define STRESS_MODE 0
-
-#if DEMO_MODE == STRESS_MODE
-#error "Exactly one of DEMO_MODE or STRESS_MODE must be enabled."
-#endif
-
-#if DEMO_MODE
-#define FISH_COUNT 7
-#define VISUAL_MODE_NAME "DEMO_MODE"
-#else
-#define FISH_COUNT 100
-#define VISUAL_MODE_NAME "STRESS_MODE"
-#endif
-
+#define MIN_FISH_COUNT 30
+#define MAX_FISH_COUNT 60
+#define VISUAL_MODE_NAME "RANDOM"
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 #define FPS_DELAY_MS 16
@@ -39,10 +28,12 @@
 #define LOG_WIDTH 275
 #define LOG_HEIGHT 132
 #define LOG_LINES 5
-#define BELT_SPEED 2.9f
-#define ROUTE_LERP 0.095f
+#define BELT_SPEED 4.0f
+#define ROUTE_LERP 0.12f
 #define DEADLINE_MS 3.0f
 #define RESTART_DELAY_MS 2000
+#define INVALID_CHANCE_PERCENT 8
+#define DEADLINE_MISS_CHANCE_PERCENT 8
 
 typedef enum {
     PHASE_BELT = 0,
@@ -69,6 +60,7 @@ typedef struct {
     int width;
     int height;
     int deadline_miss;
+    int active;
     int produced_logged;
     int classified_logged;
     int completed_logged;
@@ -102,6 +94,7 @@ typedef struct {
     int produced_count;
     int classified_count;
     int completed_count;
+    int scenario_fish_count;
     int paused;
     int running;
     Uint32 completed_timestamp_ms;
@@ -332,12 +325,14 @@ static void draw_status_card(
     SDL_Rect rect = {x, y, w, h};
     SDL_Rect label_rect = {x + 12, y + 10, w - 24, 16};
     SDL_Rect value_rect = {x + 10, y + 30, w - 20, h - 34};
+    int label_scale = text_width(2, label) > label_rect.w ? 1 : 2;
+    int value_scale = text_width(3, value) > value_rect.w ? 2 : 3;
 
     draw_panel(renderer, rect, (SDL_Color) {20, 27, 33, 220}, (SDL_Color) {45, 58, 68, 255});
     SDL_SetRenderDrawColor(renderer, accent.r, accent.g, accent.b, 255);
     SDL_RenderFillRect(renderer, &(SDL_Rect) {x, y, 5, h});
-    draw_text_centered(renderer, label_rect, 2, (SDL_Color) {132, 149, 162, 255}, label);
-    draw_text_centered(renderer, value_rect, 3, (SDL_Color) {232, 239, 242, 255}, value);
+    draw_text_centered(renderer, label_rect, label_scale, (SDL_Color) {132, 149, 162, 255}, label);
+    draw_text_centered(renderer, value_rect, value_scale, (SDL_Color) {232, 239, 242, 255}, value);
 }
 
 static void draw_activity_indicator(SDL_Renderer* renderer, int x, int y, const char* label, float activity) {
@@ -412,68 +407,71 @@ static const char* resolve_destination(const FishSample* sample, int deadline_mi
     }
 }
 
-static FishSample build_sample(uint32_t fish_id) {
+static int random_int_range(int min_value, int max_value) {
+    int span = max_value - min_value + 1;
+
+    return min_value + (rand() % span);
+}
+
+static FishSample build_random_sample(uint32_t fish_id) {
     FishSample sample;
+    FishClass target_class;
+    int invalid_roll;
 
     sample.fish_id = fish_id;
     sample.timestamp_ns = 0;
     sample.class_id = FISH_INVALID;
     sample.error_code = ERR_NONE;
-
-#if DEMO_MODE
-    switch (fish_id) {
-        case 1:
-            sample.length_mm = 180;
-            sample.weight_g = 220;
-            break;
-        case 2:
-            sample.length_mm = 280;
-            sample.weight_g = 520;
-            break;
-        case 3:
-            sample.length_mm = 420;
-            sample.weight_g = 850;
-            break;
-        case 4:
+    invalid_roll = rand() % 100;
+    if (invalid_roll < INVALID_CHANCE_PERCENT) {
+        if ((rand() % 2) == 0) {
             sample.length_mm = 0;
-            sample.weight_g = 500;
+            sample.weight_g = (uint16_t) random_int_range(120, 880);
+        } else {
+            sample.length_mm = (uint16_t) random_int_range(110, 460);
+            sample.weight_g = 0;
+        }
+        return sample;
+    }
+
+    target_class = (FishClass) random_int_range((int) FISH_SMALL, (int) FISH_LARGE);
+    switch (target_class) {
+        case FISH_SMALL:
+            sample.length_mm = (uint16_t) random_int_range(115, 195);
+            sample.weight_g = (uint16_t) random_int_range(130, 245);
             break;
-        case 5:
-            sample.length_mm = 340;
-            sample.weight_g = 680;
+        case FISH_MEDIUM:
+            sample.length_mm = (uint16_t) random_int_range(205, 345);
+            sample.weight_g = (uint16_t) random_int_range(255, 690);
             break;
-        case 6:
-            sample.length_mm = 160;
-            sample.weight_g = 180;
+        case FISH_LARGE:
+            if ((rand() % 2) == 0) {
+                sample.length_mm = (uint16_t) random_int_range(350, 470);
+                sample.weight_g = (uint16_t) random_int_range(420, 880);
+            } else {
+                sample.length_mm = (uint16_t) random_int_range(220, 345);
+                sample.weight_g = (uint16_t) random_int_range(700, 900);
+            }
             break;
         default:
-            sample.length_mm = 390;
-            sample.weight_g = 720;
+            sample.length_mm = 0;
+            sample.weight_g = 0;
             break;
     }
-#else
-    sample.length_mm = 110 + (uint16_t) ((fish_id * 37U) % 360U);
-    sample.weight_g = 120 + (uint16_t) ((fish_id * 61U) % 760U);
-    if (fish_id % 13U == 0U) {
-        sample.length_mm = 0;
-    } else if (fish_id % 17U == 0U) {
-        sample.weight_g = 0;
-    }
-#endif
 
     return sample;
 }
 
-static int should_deadline_miss(uint32_t fish_id) {
-#if DEMO_MODE
-    return fish_id == 5U;
-#else
-    return fish_id % 21U == 0U;
-#endif
+static int should_deadline_miss(const FishSample* sample) {
+    if (sample->class_id == FISH_INVALID || sample->error_code == ERR_INVALID_DATA) {
+        return 0;
+    }
+
+    return (rand() % 100) < DEADLINE_MISS_CHANCE_PERCENT;
 }
 
 static float compute_latency_ms(const VisualFish* fish) {
-    float base = 0.55f + (float) ((fish->sample.fish_id % 5U) * 0.22f);
+    float base = 0.55f + (float) random_int_range(0, 6) * 0.18f;
 
     if (fish->sample.error_code == ERR_INVALID_DATA || fish->sample.class_id == FISH_INVALID) {
         base += 0.55f;
@@ -485,11 +483,18 @@ static float compute_latency_ms(const VisualFish* fish) {
     return base;
 }
 
-static void init_fish(VisualFish fish_list[FISH_COUNT], const BinVisual bins[5]) {
+static void init_fish(VisualFish fish_list[MAX_FISH_COUNT], VisualState* state, const BinVisual bins[5]) {
     int i;
+    float spawn_offset = 0.0f;
 
-    for (i = 0; i < FISH_COUNT; i++) {
-        FishSample sample = build_sample((uint32_t) (i + 1));
+    state->scenario_fish_count = random_int_range(MIN_FISH_COUNT, MAX_FISH_COUNT);
+
+    for (i = 0; i < MAX_FISH_COUNT; i++) {
+        SDL_memset(&fish_list[i], 0, sizeof(fish_list[i]));
+    }
+
+    for (i = 0; i < state->scenario_fish_count; i++) {
+        FishSample sample = build_random_sample((uint32_t) (i + 1));
         SDL_Rect bin_rect;
 
         sample.class_id = classify_fish(sample.length_mm, sample.weight_g);
@@ -498,7 +503,8 @@ static void init_fish(VisualFish fish_list[FISH_COUNT], const BinVisual bins[5])
         }
 
         fish_list[i].sample = sample;
-        fish_list[i].deadline_miss = should_deadline_miss(sample.fish_id);
+        fish_list[i].active = 1;
+        fish_list[i].deadline_miss = should_deadline_miss(&fish_list[i].sample);
         if (fish_list[i].deadline_miss) {
             fish_list[i].sample.error_code = ERR_DEADLINE_MISS;
         }
@@ -506,10 +512,11 @@ static void init_fish(VisualFish fish_list[FISH_COUNT], const BinVisual bins[5])
         fish_list[i].destination = resolve_destination(&fish_list[i].sample, fish_list[i].deadline_miss);
         fish_list[i].color = class_to_color(fish_list[i].sample.class_id);
         class_to_size(fish_list[i].sample.class_id, &fish_list[i].width, &fish_list[i].height);
-        fish_list[i].x = -150.0f - (float) (i * (DEMO_MODE ? 118 : 36));
-        fish_list[i].base_y = CONVEYOR_Y + 62.0f + (float) ((i % 5) * 14);
+        spawn_offset += (float) random_int_range(44, 96);
+        fish_list[i].x = -150.0f - spawn_offset;
+        fish_list[i].base_y = CONVEYOR_Y + 54.0f + (float) random_int_range(0, 74);
         fish_list[i].y = fish_list[i].base_y;
-        fish_list[i].wave_offset = (float) (i * 11);
+        fish_list[i].wave_offset = (float) random_int_range(0, 360);
         fish_list[i].phase = PHASE_BELT;
         fish_list[i].produced_logged = 0;
         fish_list[i].classified_logged = 0;
@@ -531,15 +538,16 @@ static void init_fish(VisualFish fish_list[FISH_COUNT], const BinVisual bins[5])
     }
 }
 
-static void reset_visual_state(VisualState* state, VisualFish fish_list[FISH_COUNT], const BinVisual bins[5]) {
+static void reset_visual_state(VisualState* state, VisualFish fish_list[MAX_FISH_COUNT], const BinVisual bins[5]) {
     int was_running = state->running;
 
     SDL_memset(state, 0, sizeof(*state));
     state->running = was_running;
     state->paused = 0;
-    init_fish(fish_list, bins);
+    init_fish(fish_list, state, bins);
     push_log_event(state, "SYSTEM READY");
     push_log_event(state, "MODE=%s", VISUAL_MODE_NAME);
+    push_log_event(state, "SCENARIO COUNT=%d", state->scenario_fish_count);
 }
 
 static void update_stats(VisualState* state, const VisualFish* fish) {
@@ -577,13 +585,17 @@ static void complete_fish(VisualState* state, VisualFish* fish) {
     }
     update_stats(state, fish);
 
-    if (state->completed_count == FISH_COUNT) {
+    if (state->completed_count == state->scenario_fish_count) {
         state->completed_timestamp_ms = SDL_GetTicks();
         push_log_event(state, "BATCH COMPLETE");
     }
 }
 
 static void update_fish(VisualState* state, VisualFish* fish, float frame_time) {
+    if (!fish->active || fish->phase == PHASE_DONE) {
+        return;
+    }
+
     if (!fish->produced_logged && fish->x > 16.0f) {
         fish->produced_logged = 1;
         state->produced_count++;
@@ -726,13 +738,13 @@ static void draw_status_panel(SDL_Renderer* renderer, const VisualState* state) 
     draw_status_card(renderer, 688, 34, 130, 74, "INVALID", value_buffer, (SDL_Color) {255, 170, 70, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "IN:%d OUT:%d", input_queue_count, output_queue_count);
-    draw_status_card(renderer, 826, 34, 214, 74, "QUEUE STATUS", value_buffer, (SDL_Color) {118, 136, 153, 255});
+    draw_status_card(renderer, 820, 34, 226, 74, "QUEUE STATUS", value_buffer, (SDL_Color) {118, 136, 153, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "%.2fMS", average_latency_ms);
-    draw_status_card(renderer, 1050, 34, 96, 74, "AVG", value_buffer, (SDL_Color) {80, 180, 255, 255});
+    draw_status_card(renderer, 1054, 34, 94, 74, "AVG", value_buffer, (SDL_Color) {80, 180, 255, 255});
 
     SDL_snprintf(value_buffer, sizeof(value_buffer), "%.2fMS", state->stats.max_latency_ms);
-    draw_status_card(renderer, 1158, 34, 100, 74, "MAX", value_buffer, (SDL_Color) {255, 176, 67, 255});
+    draw_status_card(renderer, 1160, 34, 98, 74, "MAX", value_buffer, (SDL_Color) {255, 176, 67, 255});
 
     draw_activity_indicator(renderer, 44, 112, "SENSOR THREAD ACTIVE", state->sensor_activity);
     draw_activity_indicator(renderer, 330, 112, "CLASSIFICATION THREAD ACTIVE", state->classification_activity);
@@ -753,6 +765,10 @@ static void draw_log_panel(SDL_Renderer* renderer, const VisualState* state) {
 }
 
 static void draw_fish(SDL_Renderer* renderer, const VisualFish* fish) {
+    if (!fish->active) {
+        return;
+    }
+
     SDL_Rect body = {(int) fish->x, (int) fish->y, fish->width, fish->height};
     SDL_Point tail[4];
     int body_radius = fish->height / 2;
@@ -790,10 +806,14 @@ static void draw_fish(SDL_Renderer* renderer, const VisualFish* fish) {
     SDL_RenderFillRect(renderer, &(SDL_Rect) {eye_x + 2, eye_y + 2, 2, 2});
 }
 
-static void draw_route_guides(SDL_Renderer* renderer, const VisualFish fish_list[FISH_COUNT]) {
+static void draw_route_guides(
+    SDL_Renderer* renderer,
+    const VisualFish fish_list[MAX_FISH_COUNT],
+    int fish_count
+) {
     int i;
 
-    for (i = 0; i < FISH_COUNT; i++) {
+    for (i = 0; i < fish_count; i++) {
         if (fish_list[i].phase == PHASE_ROUTE) {
             int start_x = (int) fish_list[i].x + fish_list[i].width + 8;
             int start_y = (int) fish_list[i].y + fish_list[i].height / 2;
@@ -826,7 +846,7 @@ int main(void) {
     SDL_Event event;
     Uint64 previous_counter;
     BinVisual bins[5];
-    VisualFish fish_list[FISH_COUNT];
+    VisualFish fish_list[MAX_FISH_COUNT];
     VisualState state = {0};
     int i;
 
@@ -858,6 +878,7 @@ int main(void) {
     }
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    srand((unsigned int) (SDL_GetPerformanceCounter() ^ SDL_GetTicks() ^ 0x5EED1234U));
 
     init_bins(bins);
     reset_visual_state(&state, fish_list, bins);
@@ -890,11 +911,11 @@ int main(void) {
             state.belt_offset += frame_time * 170.0f;
             decay_activity(&state, frame_time);
 
-            for (i = 0; i < FISH_COUNT; i++) {
+            for (i = 0; i < state.scenario_fish_count; i++) {
                 update_fish(&state, &fish_list[i], frame_time);
             }
 
-            if (state.completed_count == FISH_COUNT &&
+            if (state.completed_count == state.scenario_fish_count &&
                 state.completed_timestamp_ms > 0 &&
                 SDL_GetTicks() - state.completed_timestamp_ms >= RESTART_DELAY_MS) {
                 reset_visual_state(&state, fish_list, bins);
@@ -904,9 +925,9 @@ int main(void) {
 
         draw_background(renderer, bins, &state);
         draw_status_panel(renderer, &state);
-        draw_route_guides(renderer, fish_list);
+        draw_route_guides(renderer, fish_list, state.scenario_fish_count);
 
-        for (i = 0; i < FISH_COUNT; i++) {
+        for (i = 0; i < state.scenario_fish_count; i++) {
             if (fish_list[i].highlight_timer > 0.0f) {
                 fish_list[i].highlight_timer = SDL_max(0.0f, fish_list[i].highlight_timer - frame_time * 1.4f);
             }
